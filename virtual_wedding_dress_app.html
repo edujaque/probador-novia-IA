@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Probador Virtual MIO NOVIOS</title>
+    <!-- Se eliminó el código relacionado con PWA (manifest y service worker) para solucionar un error de protocolo de URL.
+    La aplicación principal sigue funcionando con normalidad. -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7e9e9;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .card {
+            background-color: #fff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #d8b4fe;
+            color: #4a044e;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background-color: #c084fc;
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #c084fc;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="container mx-auto p-6 md:p-10 card">
+        <h1 class="text-4xl md:text-5xl font-bold text-center text-gray-800 mb-2">MIO NOVIAS IA</h1>
+        <p class="text-center text-gray-600 mb-8">Sube tu foto para probar diferentes vestidos de novia.</p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Columna para subir imagen y estilos -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 flex flex-col items-center">
+                <label for="imageUpload" class="cursor-pointer">
+                    <div id="image-preview" class="w-full h-80 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-400">
+                        <span id="placeholder-text" class="text-gray-500 text-center p-4">Haz clic para subir una foto de cuerpo completo o medio cuerpo.</span>
+                        <img id="uploaded-image" class="hidden w-full h-full object-cover" src="#" alt="Vista previa de la imagen">
+                    </div>
+                </label>
+                <input type="file" id="imageUpload" accept="image/*" class="hidden">
+                
+                <h3 class="text-xl font-semibold text-gray-800 mt-6 mb-4">Elige tu estilo</h3>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 gap-4 w-full">
+                    <button class="style-btn bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-xl transition" data-style="vestido de novia de princesa">Princesa</button>
+                    <button class="style-btn bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-xl transition" data-style="vestido de novia de sirena">Sirena</button>
+                    <button class="style-btn bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-xl transition" data-style="vestido de novia con corte A">Corte A</button>
+                    <button class="style-btn bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-xl transition" data-style="vestido de novia bohemio">Bohemio</button>
+                    <button class="style-btn bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-xl transition" data-style="vestido de novia simple y elegante">Simple</button>
+                    <button class="style-btn bg-purple-50 hover:bg-purple-100 text-purple-800 font-medium py-3 px-4 rounded-xl transition" data-style="vestido de novia vintage de encaje">Vintage</button>
+                </div>
+                <div class="w-full mt-6">
+                    <label for="customPrompt" class="block text-gray-700 font-medium mb-2">O describe tu propio estilo:</label>
+                    <input type="text" id="customPrompt" class="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="Ej. 'vestido de novia moderno con flores bordadas'">
+                </div>
+            </div>
+
+            <!-- Columna para el resultado -->
+            <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 flex flex-col items-center justify-center">
+                <div class="w-full h-80 bg-gray-200 rounded-lg flex items-center justify-center overflow-hidden" id="result-container">
+                    <p id="result-text" class="text-gray-500 text-center p-4">El resultado de tu probador virtual aparecerá aquí.</p>
+                    <div id="loading-spinner" class="loader hidden"></div>
+                    <img id="result-image" class="hidden w-full h-full object-cover" src="#" alt="Vestido de novia generado por IA">
+                </div>
+                <button id="generate-btn" class="w-full btn-primary font-bold py-3 px-6 mt-6 rounded-xl text-lg flex items-center justify-center">
+                    <span id="btn-text">Probar Vestido</span>
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const imageUpload = document.getElementById('imageUpload');
+            const imagePreview = document.getElementById('image-preview');
+            const uploadedImage = document.getElementById('uploaded-image');
+            const placeholderText = document.getElementById('placeholder-text');
+            const styleButtons = document.querySelectorAll('.style-btn');
+            const customPromptInput = document.getElementById('customPrompt');
+            const generateBtn = document.getElementById('generate-btn');
+            const resultContainer = document.getElementById('result-container');
+            const resultImage = document.getElementById('result-image');
+            const resultText = document.getElementById('result-text');
+            const loadingSpinner = document.getElementById('loading-spinner');
+            const btnText = document.getElementById('btn-text');
+            
+            let uploadedImageData = null;
+            let selectedPrompt = '';
+
+            imageUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        uploadedImageData = e.target.result;
+                        uploadedImage.src = uploadedImageData;
+                        uploadedImage.classList.remove('hidden');
+                        placeholderText.classList.add('hidden');
+                        imagePreview.classList.remove('border-dashed', 'border-gray-400');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            styleButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    styleButtons.forEach(btn => btn.classList.remove('bg-purple-300'));
+                    button.classList.add('bg-purple-300');
+                    selectedPrompt = button.dataset.style;
+                    customPromptInput.value = '';
+                });
+            });
+
+            customPromptInput.addEventListener('input', () => {
+                styleButtons.forEach(btn => btn.classList.remove('bg-purple-300'));
+                selectedPrompt = customPromptInput.value;
+            });
+            
+            generateBtn.addEventListener('click', async () => {
+                if (!uploadedImageData) {
+                    alert('Por favor, sube una imagen primero.');
+                    return;
+                }
+
+                if (!selectedPrompt) {
+                    alert('Por favor, selecciona o describe un estilo de vestido.');
+                    return;
+                }
+
+                // Show loading state
+                resultImage.classList.add('hidden');
+                resultText.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                btnText.textContent = 'Generando...';
+                generateBtn.disabled = true;
+
+                // Strip the data URL prefix to get the base64 string
+                const base64ImageData = uploadedImageData.split(',')[1];
+                const prompt = `Crea una nueva imagen de esta persona usando el siguiente estilo de vestido de novia: ${selectedPrompt}. La imagen debe ser fotorealista.`;
+
+                try {
+                    const payload = {
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inlineData: { mimeType: "image/png", data: base64ImageData } }
+                            ]
+                        }],
+                        generationConfig: {
+                            responseModalities: ["IMAGE"]
+                        },
+                    };
+
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+
+                    // Exponential backoff retry logic
+                    let response;
+                    let success = false;
+                    let retries = 0;
+                    const maxRetries = 5;
+                    while (!success && retries < maxRetries) {
+                        try {
+                            response = await fetch(apiUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            if (response.status === 429) {
+                                retries++;
+                                const delay = Math.pow(2, retries) * 1000;
+                                console.log(`Rate limit exceeded. Retrying in ${delay}ms...`);
+                                await new Promise(res => setTimeout(res, delay));
+                            } else {
+                                success = true;
+                            }
+                        } catch (error) {
+                            retries++;
+                            const delay = Math.pow(2, retries) * 1000;
+                            console.error(`Fetch error. Retrying in ${delay}ms...`);
+                            await new Promise(res => setTimeout(res, delay));
+                        }
+                    }
+                    if (!success) {
+                        throw new Error("Failed to fetch after multiple retries.");
+                    }
+
+                    const result = await response.json();
+                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                    
+                    if (base64Data) {
+                        const imageUrl = `data:image/png;base64,${base64Data}`;
+                        resultImage.src = imageUrl;
+                        resultImage.classList.remove('hidden');
+                        resultText.classList.add('hidden');
+                    } else {
+                        resultText.textContent = "Lo siento, no pude generar una imagen. Inténtalo de nuevo con una foto diferente.";
+                        resultText.classList.remove('hidden', 'text-gray-500');
+                        resultText.classList.add('text-red-600');
+                    }
+                } catch (error) {
+                    console.error('Error al generar la imagen:', error);
+                    resultText.textContent = 'Error: ' + error.message;
+                    resultText.classList.remove('hidden', 'text-gray-500');
+                    resultText.classList.add('text-red-600');
+                } finally {
+                    loadingSpinner.classList.add('hidden');
+                    btnText.textContent = 'Probar Vestido';
+                    generateBtn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
