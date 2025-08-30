@@ -4,17 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Probador Virtual MIO NOVIOS</title>
-    <!-- Los siguientes enlaces y script son para la funcionalidad de PWA, que permite que la app sea instalable. -->
-    <link rel="manifest" href="manifest.json">
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('Service Worker registrado con éxito'))
-                    .catch(err => console.error('Error al registrar el Service Worker:', err));
-            });
-        }
-    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -151,12 +140,17 @@
             
             generateBtn.addEventListener('click', async () => {
                 if (!uploadedImageData) {
-                    alert('Por favor, sube una imagen primero.');
+                    // Replaced alert with a message box for a better user experience
+                    resultText.textContent = "Por favor, sube una imagen primero.";
+                    resultText.classList.remove('hidden', 'text-gray-500');
+                    resultText.classList.add('text-red-600');
                     return;
                 }
 
                 if (!selectedPrompt) {
-                    alert('Por favor, selecciona o describe un estilo de vestido.');
+                     resultText.textContent = "Por favor, selecciona o describe un estilo de vestido.";
+                    resultText.classList.remove('hidden', 'text-gray-500');
+                    resultText.classList.add('text-red-600');
                     return;
                 }
 
@@ -169,7 +163,9 @@
 
                 // Strip the data URL prefix to get the base64 string
                 const base64ImageData = uploadedImageData.split(',')[1];
-                const prompt = `Crea una nueva imagen de esta persona usando el siguiente estilo de vestido de novia: ${selectedPrompt}. La imagen debe ser fotorealista.`;
+                
+                // Simplified prompt for better results
+                const prompt = `${selectedPrompt} con la persona en la foto. fotorealista`;
 
                 try {
                     const payload = {
