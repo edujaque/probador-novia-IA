@@ -215,7 +215,7 @@
                     if (!success) {
                         throw new Error("Failed to fetch after multiple retries.");
                     }
-
+                    
                     const result = await response.json();
                     
                     const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
