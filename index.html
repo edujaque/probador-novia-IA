@@ -215,6 +215,7 @@
                     }
 
                     const result = await response.json();
+                    
                     const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
                     
                     if (base64Data) {
@@ -222,14 +223,20 @@
                         resultImage.src = imageUrl;
                         resultImage.classList.remove('hidden');
                         resultText.classList.add('hidden');
+                    } else if (result.error) {
+                         // Improved error reporting
+                        resultText.textContent = `Error de API: ${result.error.message}`;
+                        resultText.classList.remove('hidden', 'text-gray-500');
+                        resultText.classList.add('text-red-600');
                     } else {
+                         // Generic error if no specific API error is provided
                         resultText.textContent = "Lo siento, no pude generar una imagen. Inténtalo de nuevo con una foto diferente.";
                         resultText.classList.remove('hidden', 'text-gray-500');
                         resultText.classList.add('text-red-600');
                     }
                 } catch (error) {
                     console.error('Error al generar la imagen:', error);
-                    resultText.textContent = 'Error: ' + error.message;
+                    resultText.textContent = `Error de JavaScript: ${error.message}`;
                     resultText.classList.remove('hidden', 'text-gray-500');
                     resultText.classList.add('text-red-600');
                 } finally {
