@@ -140,7 +140,6 @@
             
             generateBtn.addEventListener('click', async () => {
                 if (!uploadedImageData) {
-                    // Replaced alert with a message box for a better user experience
                     resultText.textContent = "Por favor, sube una imagen primero.";
                     resultText.classList.remove('hidden', 'text-gray-500');
                     resultText.classList.add('text-red-600');
@@ -154,84 +153,50 @@
                     return;
                 }
 
-                // Show loading state
                 resultImage.classList.add('hidden');
                 resultText.classList.add('hidden');
                 loadingSpinner.classList.remove('hidden');
                 btnText.textContent = 'Generando...';
                 generateBtn.disabled = true;
 
-                // Strip the data URL prefix to get the base64 string
                 const base64ImageData = uploadedImageData.split(',')[1];
-                
-                // Simplified prompt for better results
-                const prompt = `${selectedPrompt} con la persona en la foto. fotorealista`;
+                const prompt = `${selectedPrompt} en una foto de una mujer, estilo de revista de alta costura, iluminación de estudio, alta resolución, detallado`;
 
                 try {
                     const payload = {
-                        contents: [{
-                            parts: [
-                                { text: prompt },
-                                { inlineData: { mimeType: "image/png", data: base64ImageData } }
-                            ]
+                        instances: [{
+                            prompt: prompt,
+                            image: {
+                                bytesBase64Encoded: base64ImageData
+                            }
                         }],
-                        generationConfig: {
-                            responseModalities: ["IMAGE"]
-                        },
+                        parameters: {
+                            sampleCount: 1
+                        }
                     };
 
-                    // Pega tu clave de API aquí
-                    const apiKey = "AIzaSyAKEEwM4riDO1L3_cUadO1vIT7LaGl7UMY";
-                    
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image-preview:generateContent?key=${apiKey}`;
+                    const apiKey = ""; 
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`;
 
-                    // Exponential backoff retry logic
-                    let response;
-                    let success = false;
-                    let retries = 0;
-                    const maxRetries = 5;
-                    while (!success && retries < maxRetries) {
-                        try {
-                            response = await fetch(apiUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify(payload)
-                            });
-                            if (response.status === 429) {
-                                retries++;
-                                const delay = Math.pow(2, retries) * 1000;
-                                console.log(`Rate limit exceeded. Retrying in ${delay}ms...`);
-                                await new Promise(res => setTimeout(res, delay));
-                            } else {
-                                success = true;
-                            }
-                        } catch (error) {
-                            retries++;
-                            const delay = Math.pow(2, retries) * 1000;
-                            console.error(`Fetch error. Retrying in ${delay}ms...`);
-                            await new Promise(res => setTimeout(res, delay));
-                        }
-                    }
-                    if (!success) {
-                        throw new Error("Failed to fetch after multiple retries.");
-                    }
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
                     
                     const result = await response.json();
                     
-                    const base64Data = result?.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
-                    
-                    if (base64Data) {
+                    if (result?.predictions?.[0]?.bytesBase64Encoded) {
+                        const base64Data = result.predictions[0].bytesBase64Encoded;
                         const imageUrl = `data:image/png;base64,${base64Data}`;
                         resultImage.src = imageUrl;
                         resultImage.classList.remove('hidden');
                         resultText.classList.add('hidden');
                     } else if (result.error) {
-                         // Improved error reporting
                         resultText.textContent = `Error de API: ${result.error.message}`;
                         resultText.classList.remove('hidden', 'text-gray-500');
                         resultText.classList.add('text-red-600');
                     } else {
-                         // Generic error if no specific API error is provided
                         resultText.textContent = "Lo siento, no pude generar una imagen. Inténtalo de nuevo con una foto diferente.";
                         resultText.classList.remove('hidden', 'text-gray-500');
                         resultText.classList.add('text-red-600');
